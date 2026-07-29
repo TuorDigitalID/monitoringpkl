@@ -23,6 +23,22 @@ import {
   INITIAL_LETTERS,
   INITIAL_CLASSES
 } from './initialData';
+import {
+  syncUpsertUser,
+  syncDeleteUser,
+  syncUpsertDudi,
+  syncDeleteDudi,
+  syncUpsertTeacher,
+  syncDeleteTeacher,
+  syncUpsertStudent,
+  syncDeleteStudent,
+  syncUpsertClass,
+  syncDeleteClass,
+  syncUpsertJournal,
+  syncUpsertAttendance,
+  syncUpsertGrade,
+  fetchAllDataFromSupabase
+} from '../lib/supabase';
 
 const STORE_KEY_PREFIX = 'sim_pkl_store_v1_';
 
@@ -73,6 +89,52 @@ export class DBStore {
     const savedUserRole = loadFromStorage<UserRole>('active_role', 'admin');
     const matchedUser = this.users.find((u) => u.role === savedUserRole) || this.users[0];
     this.currentUser = matchedUser;
+
+    // Asynchronously fetch latest dataset from Supabase Cloud if connected
+    this.initCloudSync();
+  }
+
+  private async initCloudSync() {
+    try {
+      const cloudData = await fetchAllDataFromSupabase();
+      if (cloudData) {
+        if (cloudData.users && cloudData.users.length > 0) {
+          this.users = cloudData.users;
+          saveToStorage('users', this.users);
+        }
+        if (cloudData.dudis && cloudData.dudis.length > 0) {
+          this.dudis = cloudData.dudis;
+          saveToStorage('dudis', this.dudis);
+        }
+        if (cloudData.teachers && cloudData.teachers.length > 0) {
+          this.teachers = cloudData.teachers;
+          saveToStorage('teachers', this.teachers);
+        }
+        if (cloudData.students && cloudData.students.length > 0) {
+          this.students = cloudData.students;
+          saveToStorage('students', this.students);
+        }
+        if (cloudData.classes && cloudData.classes.length > 0) {
+          this.classes = cloudData.classes;
+          saveToStorage('classes', this.classes);
+        }
+        if (cloudData.journals && cloudData.journals.length > 0) {
+          this.journals = cloudData.journals;
+          saveToStorage('journals', this.journals);
+        }
+        if (cloudData.attendances && cloudData.attendances.length > 0) {
+          this.attendances = cloudData.attendances;
+          saveToStorage('attendances', this.attendances);
+        }
+        if (cloudData.grades && cloudData.grades.length > 0) {
+          this.grades = cloudData.grades;
+          saveToStorage('grades', this.grades);
+        }
+        this.notify();
+      }
+    } catch (e) {
+      console.warn('Initial cloud sync skipped or failed:', e);
+    }
   }
 
   public subscribe(listener: () => void) {
@@ -154,18 +216,21 @@ export class DBStore {
   public addUser(user: User) {
     this.users.unshift(user);
     saveToStorage('users', this.users);
+    syncUpsertUser(user);
     this.notify();
   }
 
   public updateUser(user: User) {
     this.users = this.users.map((u) => (u.id === user.id ? user : u));
     saveToStorage('users', this.users);
+    syncUpsertUser(user);
     this.notify();
   }
 
   public deleteUser(id: string) {
     this.users = this.users.filter((u) => u.id !== id);
     saveToStorage('users', this.users);
+    syncDeleteUser(id);
     this.notify();
   }
 
@@ -190,12 +255,21 @@ export class DBStore {
   public addStudent(student: Student) {
     this.students.unshift(student);
     saveToStorage('students', this.students);
+    syncUpsertStudent(student);
     this.notify();
   }
 
   public updateStudent(student: Student) {
     this.students = this.students.map((s) => (s.id === student.id ? student : s));
     saveToStorage('students', this.students);
+    syncUpsertStudent(student);
+    this.notify();
+  }
+
+  public deleteStudent(id: string) {
+    this.students = this.students.filter((s) => s.id !== id);
+    saveToStorage('students', this.students);
+    syncDeleteStudent(id);
     this.notify();
   }
 
@@ -207,18 +281,26 @@ export class DBStore {
   public addTeacher(teacher: Teacher) {
     this.teachers.unshift(teacher);
     saveToStorage('teachers', this.teachers);
+    syncUpsertTeacher(teacher);
     this.notify();
   }
 
   public updateTeacher(teacher: Teacher) {
     this.teachers = this.teachers.map((t) => (t.id === teacher.id ? teacher : t));
     saveToStorage('teachers', this.teachers);
+    syncUpsertTeacher(teacher);
     this.notify();
   }
 
   public deleteTeacher(id: string) {
     this.teachers = this.teachers.filter((t) => t.id !== id);
+    // Unassign teacher from students
+    this.students = this.students.map((s) =>
+      s.teacherId === id ? { ...s, teacherId: undefined, teacherName: undefined } : s
+    );
     saveToStorage('teachers', this.teachers);
+    saveToStorage('students', this.students);
+    syncDeleteTeacher(id);
     this.notify();
   }
 
@@ -230,18 +312,31 @@ export class DBStore {
   public addDudi(dudi: Dudi) {
     this.dudis.unshift(dudi);
     saveToStorage('dudis', this.dudis);
+    syncUpsertDudi(dudi);
     this.notify();
   }
 
   public updateDudi(dudi: Dudi) {
     this.dudis = this.dudis.map((d) => (d.id === dudi.id ? dudi : d));
     saveToStorage('dudis', this.dudis);
+    syncUpsertDudi(dudi);
     this.notify();
   }
 
   public deleteDudi(id: string) {
     this.dudis = this.dudis.filter((d) => d.id !== id);
+    // Unassign DUDI from students
+    this.students = this.students.map((s) => {
+      if (s.dudiId === id) {
+        const updatedStudent = { ...s, dudiId: undefined, dudiName: undefined, statusPKL: 'belum_dapat' as const };
+        syncUpsertStudent(updatedStudent);
+        return updatedStudent;
+      }
+      return s;
+    });
     saveToStorage('dudis', this.dudis);
+    saveToStorage('students', this.students);
+    syncDeleteDudi(id);
     this.notify();
   }
 
@@ -257,12 +352,14 @@ export class DBStore {
   public addJournal(journal: DailyJournal) {
     this.journals.unshift(journal);
     saveToStorage('journals', this.journals);
+    syncUpsertJournal(journal);
     this.notify();
   }
 
   public updateJournal(journal: DailyJournal) {
     this.journals = this.journals.map((j) => (j.id === journal.id ? journal : j));
     saveToStorage('journals', this.journals);
+    syncUpsertJournal(journal);
     this.notify();
   }
 
@@ -280,19 +377,27 @@ export class DBStore {
     const existingIndex = this.attendances.findIndex(
       (a) => a.studentId === att.studentId && a.date === att.date
     );
+    let finalAtt = att;
     if (existingIndex >= 0) {
-      this.attendances[existingIndex] = { ...this.attendances[existingIndex], ...att };
+      finalAtt = { ...this.attendances[existingIndex], ...att };
+      this.attendances[existingIndex] = finalAtt;
     } else {
       this.attendances.unshift(att);
     }
     saveToStorage('attendances', this.attendances);
+    syncUpsertAttendance(finalAtt);
     this.notify();
   }
 
   public validateAttendance(attId: string, validated: boolean) {
-    this.attendances = this.attendances.map((a) =>
-      a.id === attId ? { ...a, validatedByDudi: validated } : a
-    );
+    this.attendances = this.attendances.map((a) => {
+      if (a.id === attId) {
+        const updated = { ...a, validatedByDudi: validated };
+        syncUpsertAttendance(updated);
+        return updated;
+      }
+      return a;
+    });
     saveToStorage('attendances', this.attendances);
     this.notify();
   }
@@ -325,6 +430,7 @@ export class DBStore {
       this.grades.unshift(grade);
     }
     saveToStorage('grades', this.grades);
+    syncUpsertGrade(grade);
     this.notify();
   }
 
@@ -347,18 +453,21 @@ export class DBStore {
   public addClass(cls: ClassMajorItem) {
     this.classes = [...this.classes, cls];
     saveToStorage('classes', this.classes);
+    syncUpsertClass(cls);
     this.notify();
   }
 
   public updateClass(updated: ClassMajorItem) {
     this.classes = this.classes.map((c) => (c.id === updated.id ? updated : c));
     saveToStorage('classes', this.classes);
+    syncUpsertClass(updated);
     this.notify();
   }
 
   public deleteClass(id: string) {
     this.classes = this.classes.filter((c) => c.id !== id);
     saveToStorage('classes', this.classes);
+    syncDeleteClass(id);
     this.notify();
   }
 
