@@ -63,15 +63,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onClick={() => handleSelectMenu('monitoring')}
         className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${
           activeMenuItem === 'monitoring'
-            ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs font-bold'
+            ? 'bg-orange-50 text-orange-700 border border-orange-200/80 shadow-2xs font-bold'
             : 'text-slate-700 hover:bg-slate-100'
         }`}
       >
         <span className="flex items-center space-x-2">
-          <LayoutDashboard className="w-4 h-4 text-indigo-600" />
+          <LayoutDashboard className="w-4 h-4 text-orange-600" />
           <span>Dashboard Monitoring</span>
         </span>
-        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-100 text-indigo-700">
+        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-orange-100 text-orange-700">
           RINGKASAN
         </span>
       </button>
@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('plotting')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'plotting'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100 font-medium'
               }`}
             >
@@ -133,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('master_siswa')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'master_siswa'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -145,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('master_guru')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'master_guru'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -157,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('master_dudi')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'master_dudi'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -169,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('master_kelas')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'master_kelas'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -181,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('kelola_akun')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'kelola_akun'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -215,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('laporan_nilai')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'laporan_nilai'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -227,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('pengumuman')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'pengumuman'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -261,7 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelectMenu('hak_akses')}
               className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 ${
                 activeMenuItem === 'hak_akses'
-                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-xs'
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >

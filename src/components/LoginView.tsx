@@ -5,15 +5,9 @@ import {
   Mail,
   Lock,
   ArrowRight,
-  Database,
-  CheckCircle2,
   AlertCircle,
   Eye,
-  EyeOff,
-  UserCheck,
-  ShieldCheck,
-  Building2,
-  Sparkles
+  EyeOff
 } from 'lucide-react';
 import { dbStore } from '../data/dbStore';
 import { getStoredSupabaseConfig } from '../lib/supabase';
@@ -59,16 +53,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }, 400);
   };
 
-  const handleQuickLogin = (role: 'siswa' | 'guru' | 'admin') => {
-    setIsLoading(true);
-    setTimeout(() => {
-      dbStore.setCurrentRole(role);
-      dbStore.login(role);
-      setIsLoading(false);
-      onLoginSuccess();
-    }, 300);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50/70 font-sans text-slate-900 flex flex-col antialiased">
       {/* 1. HEADER (DISAMAKAN DENGAN SISTEM) */}
@@ -77,7 +61,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo & Name */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-500/20 shrink-0">
                 <GraduationCap className="w-6 h-6" />
               </div>
               <div>
@@ -85,7 +69,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   <span className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                     SIM PKL SMK MA
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-indigo-50 text-indigo-700 uppercase tracking-wider border border-indigo-200/60">
+                  <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-orange-50 text-orange-700 uppercase tracking-wider border border-orange-200/60">
                     v1.2
                   </span>
                 </div>
@@ -95,14 +79,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
             </div>
 
-            {/* Right Action: Dashboard PKL Button */}
-            <button
-              onClick={() => handleQuickLogin('admin')}
-              className="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 font-bold text-xs flex items-center space-x-2 shadow-2xs transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <LayoutDashboard className="w-4 h-4 text-indigo-600" />
-              <span>Dashboard PKL</span>
-            </button>
+            {/* Right Action: Clean Badge */}
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-xs font-bold text-slate-500">Sistem Online</span>
+            </div>
           </div>
         </div>
       </header>
@@ -113,7 +94,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           {/* Card Title Header */}
           <div className="space-y-3">
             <div className="flex items-center space-x-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shrink-0">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 flex items-center justify-center text-white shadow-sm shrink-0">
                 <GraduationCap className="w-5 h-5" />
               </div>
               <span className="text-base font-black text-slate-900 tracking-tight">
@@ -129,27 +110,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 Silakan masuk menggunakan akun terdaftar Anda untuk mengelola bimbingan, jurnal, absensi, dan nilai PKL.
               </p>
             </div>
-          </div>
-
-          {/* Database Connection Pill Status */}
-          <div
-            onClick={onOpenSupabaseModal}
-            className="bg-amber-50/90 hover:bg-amber-100/70 border border-amber-200/80 rounded-2xl p-3.5 space-y-1 transition-colors cursor-pointer group"
-          >
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-extrabold text-slate-400 uppercase tracking-wider text-[10px]">
-                KONEKSI DATABASE
-              </span>
-              <span className="font-extrabold text-amber-700 flex items-center space-x-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse inline-block"></span>
-                <span>
-                  {isSupabaseConnected ? 'Terhubung Supabase Cloud' : 'Cloud Offline (Sinking Lokal)'}
-                </span>
-              </span>
-            </div>
-            <p className="font-mono text-[11px] text-slate-500 truncate group-hover:text-indigo-600 transition-colors">
-              Host: {supabaseConfig.url || 'eppbwhvtezpcbukcshxu.supabase.co'}
-            </p>
           </div>
 
           {/* Error Notification */}
@@ -175,7 +135,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="NISN, Email, atau NIP"
-                  className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-200/90 text-xs font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  className="w-full pl-10 pr-3.5 py-3 rounded-2xl border border-slate-200/90 text-xs font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all shadow-2xs"
                 />
               </div>
             </div>
@@ -192,7 +152,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan sandi Anda"
-                  className="w-full pl-10 pr-10 py-3 rounded-2xl border border-slate-200/90 text-xs font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all shadow-2xs"
+                  className="w-full pl-10 pr-10 py-3 rounded-2xl border border-slate-200/90 text-xs font-semibold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all shadow-2xs"
                 />
                 <button
                   type="button"
@@ -208,48 +168,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-indigo-500/25 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:opacity-95 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
               <span>{isLoading ? 'Memproses...' : 'Masuk Sekarang'}</span>
               {!isLoading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
-
-          {/* Quick Login Chips for Easy Demo Testing */}
-          <div className="pt-2 border-t border-slate-100 space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Akses Cepat Mode Demo:</span>
-              <Sparkles className="w-3 h-3 text-amber-500" />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('siswa')}
-                className="p-2 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-blue-700 border border-blue-200/60 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition-colors"
-              >
-                <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span className="truncate">Siswa</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('guru')}
-                className="p-2 rounded-xl bg-emerald-50/80 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition-colors"
-              >
-                <GraduationCap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">Guru</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin')}
-                className="p-2 rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 border border-amber-200/60 font-bold text-[11px] flex items-center justify-center space-x-1.5 transition-colors"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="truncate">Admin</span>
-              </button>
-            </div>
-          </div>
 
           {/* Card Bottom Footer */}
           <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold pt-2 border-t border-slate-100">
@@ -264,7 +188,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center text-xs text-slate-500 space-y-1">
           <p className="font-bold text-slate-700">
             SIM PKL SMK MA © 2026 • by{' '}
-            <span className="text-indigo-600 font-extrabold">tutordigital.id</span>
+            <span className="text-orange-600 font-extrabold">tutordigital.id</span>
           </p>
           <p className="text-[11px] text-slate-400 font-medium">
             Sistem Manajemen Praktik Kerja Lapangan

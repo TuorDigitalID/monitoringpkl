@@ -25,6 +25,32 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // 10-minute inactivity session auto-logout
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const handleUserActivity = () => {
+      clearTimeout(timerId);
+      timerId = setTimeout(() => {
+        dbStore.logout();
+        setIsLoggedIn(false);
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    const activityEvents = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll', 'click'];
+    activityEvents.forEach((evt) => window.addEventListener(evt, handleUserActivity, { passive: true }));
+
+    handleUserActivity();
+
+    return () => {
+      clearTimeout(timerId);
+      activityEvents.forEach((evt) => window.removeEventListener(evt, handleUserActivity));
+    };
+  }, [isLoggedIn]);
+
   if (!isLoggedIn) {
     return (
       <>

@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo & Name */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-orange-500/20 shrink-0">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
@@ -61,10 +61,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                   currentUser.role === 'admin'
-                    ? 'bg-rose-100 text-rose-600'
+                    ? 'bg-orange-100 text-orange-700'
                     : currentUser.role === 'guru'
                     ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-blue-100 text-blue-700'
+                    : 'bg-amber-100 text-amber-800'
                 }`}>
                   {currentUser.role === 'admin' ? 'SUPER ADMIN' : currentUser.role === 'guru' ? 'GURU' : 'SISWA'}
                 </span>
@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveNavTab && setActiveNavTab('dashboard')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
                   activeNavTab === 'dashboard'
-                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs'
+                    ? 'bg-orange-50 text-orange-700 border border-orange-200/80 shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -95,7 +95,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveNavTab && setActiveNavTab('stats')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
                   activeNavTab === 'stats'
-                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs'
+                    ? 'bg-orange-50 text-orange-700 border border-orange-200/80 shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Active Session Badge */}
             <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Sesi Aktif</span>
+              <span>Sesi Aktif (Auto Logout 10m)</span>
             </div>
 
             {/* Supabase Database Connection Pill */}
@@ -139,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <p className="text-[11px] font-black text-slate-900 leading-tight uppercase truncate max-w-[140px]">
                     {currentUser.name}
                   </p>
-                  <p className="text-[10px] font-bold text-indigo-600 leading-tight uppercase">
+                  <p className="text-[10px] font-bold text-orange-600 leading-tight uppercase">
                     {activeRole === 'admin' ? 'SUPER ADMIN' : activeRole === 'guru' ? 'GURU' : 'SISWA'}
                   </p>
                 </div>
@@ -153,11 +153,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                   <button
                     onClick={() => handleRoleChange('admin')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center space-x-2 hover:bg-indigo-50 transition-colors cursor-pointer ${
-                      activeRole === 'admin' ? 'bg-indigo-50 font-bold text-indigo-700' : 'text-slate-700'
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center space-x-2 hover:bg-orange-50 transition-colors cursor-pointer ${
+                      activeRole === 'admin' ? 'bg-orange-50 font-bold text-orange-700' : 'text-slate-700'
                     }`}
                   >
-                    <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                    <ShieldCheck className="w-4 h-4 text-orange-600" />
                     <div>
                       <div>Super Admin / Koordinator</div>
                       <div className="text-[10px] text-slate-400 font-normal">Plotting & Kelola Akun</div>
@@ -196,10 +196,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Exit / Keluar Button */}
             <button
               onClick={() => {
-                if (confirm('Apakah Anda yakin ingin keluar dari sistem SIM PKL?')) {
-                  dbStore.logout();
-                  if (onLogout) onLogout();
-                }
+                dbStore.logout();
+                if (onLogout) onLogout();
               }}
               className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100/80 text-rose-600 font-bold text-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
               title="Keluar dari Akun"

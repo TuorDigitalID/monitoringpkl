@@ -1,5 +1,5 @@
 {
-  "name": "SIM PKL SMK/MA",
+  "name": "Monitoring PKL",
   "description": "Sistem Informasi Manajemen Praktik Kerja Lapangan (SIM PKL) SMK/MA terpadu dengan multi-role (Siswa, Guru, DUDI, Admin), Jurnal Harian, Presensi GPS, Penilaian, Ekspor Excel, Supabase & Gemini AI Assistant.",
   "requestFramePermissions": [
     "geolocation"

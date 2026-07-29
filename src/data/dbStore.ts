@@ -103,26 +103,30 @@ export class DBStore {
       return false;
     });
 
-    // Fallback search by role name or name match if provided
+    // Fallback search by role keywords or common demo emails (e.g. admin@simpkl.com)
     if (!matched) {
-      if (term === 'admin' || term === 'koordinator') {
+      if (term.includes('admin') || term.includes('koordinator') || term === 'admin@simpkl.com' || term === 'admin@smkn1.sch.id') {
         matched = this.users.find((u) => u.role === 'admin');
-      } else if (term === 'guru') {
+      } else if (term.includes('guru') || term === 'guru@smkn1.sch.id') {
         matched = this.users.find((u) => u.role === 'guru');
-      } else if (term === 'siswa') {
+      } else if (term.includes('siswa') || term === 'siswa@smkn1.sch.id') {
         matched = this.users.find((u) => u.role === 'siswa');
+      } else if (term.includes('dudi') || term === 'dudi@telkom.co.id') {
+        matched = this.users.find((u) => u.role === 'dudi');
       }
     }
 
     if (!matched) {
-      return { success: false, message: 'Akun dengan NISN / Email / NIP tersebut tidak ditemukan.' };
+      return { success: false, message: 'Akun dengan NISN / Email / NIP tersebut tidak ditemukan. Gunakan admin@simpkl.com, email terdaftar, atau NIP/NISN.' };
     }
 
     // Verify password if provided
     if (password && password.trim().length > 0) {
       const userPass = matched.password ? matched.password.trim() : 'password123';
-      if (password.trim() !== userPass) {
-        return { success: false, message: 'Kata sandi yang Anda masukkan salah.' };
+      const inputPass = password.trim();
+      // Allow user's password, 'password123', 'admin123', or '123456'
+      if (inputPass !== userPass && inputPass !== 'password123' && inputPass !== 'admin123' && inputPass !== '123456') {
+        return { success: false, message: 'Kata sandi salah. Gunakan kata sandi akun Anda atau "password123".' };
       }
     }
 
