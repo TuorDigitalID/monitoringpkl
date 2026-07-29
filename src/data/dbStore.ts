@@ -40,7 +40,7 @@ import {
   fetchAllDataFromSupabase
 } from '../lib/supabase';
 
-const STORE_KEY_PREFIX = 'sim_pkl_store_v1_';
+const STORE_KEY_PREFIX = 'sim_pkl_store_v2_';
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -98,35 +98,35 @@ export class DBStore {
     try {
       const cloudData = await fetchAllDataFromSupabase();
       if (cloudData) {
-        if (cloudData.users && cloudData.users.length > 0) {
+        if (Array.isArray(cloudData.users) && cloudData.users.length > 0) {
           this.users = cloudData.users;
           saveToStorage('users', this.users);
         }
-        if (cloudData.dudis && cloudData.dudis.length > 0) {
+        if (Array.isArray(cloudData.dudis)) {
           this.dudis = cloudData.dudis;
           saveToStorage('dudis', this.dudis);
         }
-        if (cloudData.teachers && cloudData.teachers.length > 0) {
+        if (Array.isArray(cloudData.teachers)) {
           this.teachers = cloudData.teachers;
           saveToStorage('teachers', this.teachers);
         }
-        if (cloudData.students && cloudData.students.length > 0) {
+        if (Array.isArray(cloudData.students)) {
           this.students = cloudData.students;
           saveToStorage('students', this.students);
         }
-        if (cloudData.classes && cloudData.classes.length > 0) {
+        if (Array.isArray(cloudData.classes)) {
           this.classes = cloudData.classes;
           saveToStorage('classes', this.classes);
         }
-        if (cloudData.journals && cloudData.journals.length > 0) {
+        if (Array.isArray(cloudData.journals)) {
           this.journals = cloudData.journals;
           saveToStorage('journals', this.journals);
         }
-        if (cloudData.attendances && cloudData.attendances.length > 0) {
+        if (Array.isArray(cloudData.attendances)) {
           this.attendances = cloudData.attendances;
           saveToStorage('attendances', this.attendances);
         }
-        if (cloudData.grades && cloudData.grades.length > 0) {
+        if (Array.isArray(cloudData.grades)) {
           this.grades = cloudData.grades;
           saveToStorage('grades', this.grades);
         }
