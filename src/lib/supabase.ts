@@ -54,7 +54,7 @@ export function resetSupabaseClient() {
 
 export const SUPABASE_SQL_SCHEMA_SCRIPT = `-- ===================================================
 -- SQL SCHEMA DDL & INITIAL SEED DML FOR SIM PKL SMK/MA
--- (Dapat dijalankan langsung di Supabase SQL Editor, PostgreSQL, atau MySQL)
+-- (Dapat dijalankan langsung di Supabase SQL Editor, PostgreSQL)
 -- ===================================================
 
 -- 1. TABEL PENGGUNA & AKUN LOGIN (USERS)
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  role TEXT NOT NULL DEFAULT 'siswa', -- 'siswa', 'guru', 'admin'
+  role TEXT NOT NULL DEFAULT 'siswa', -- 'siswa', 'guru', 'admin', 'dudi'
   nisn TEXT,
   nip TEXT,
   phone TEXT DEFAULT '-',
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS classes (
   major_name TEXT NOT NULL
 );
 
--- 2. TABEL MITRA INSTANSI / PERUSAHAAN (DUDI)
+-- 3. TABEL MITRA INSTANSI / PERUSAHAAN (DUDI)
 CREATE TABLE IF NOT EXISTS dudis (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS dudis (
   status TEXT DEFAULT 'aktif'
 );
 
--- 3. TABEL GURU PEMBIMBING
+-- 4. TABEL GURU PEMBIMBING
 CREATE TABLE IF NOT EXISTS teachers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS teachers (
   password TEXT DEFAULT 'guru@123'
 );
 
--- 4. TABEL DATA SISWA MAGANG / PKL
+-- 5. TABEL DATA SISWA MAGANG / PKL
 CREATE TABLE IF NOT EXISTS students (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -115,9 +115,9 @@ CREATE TABLE IF NOT EXISTS students (
   jurusan TEXT,
   password TEXT DEFAULT 'password123',
   phone TEXT DEFAULT '-',
-  dudi_id TEXT REFERENCES dudis(id) ON DELETE SET NULL,
+  dudi_id TEXT,
   dudi_name TEXT,
-  teacher_id TEXT REFERENCES teachers(id) ON DELETE SET NULL,
+  teacher_id TEXT,
   teacher_name TEXT,
   industry_supervisor_name TEXT,
   status_pkl TEXT DEFAULT 'belum_dapat',
@@ -126,7 +126,60 @@ CREATE TABLE IF NOT EXISTS students (
   photo_url TEXT
 );
 
--- MIGRASI KOLOM & FOREIGN KEY CONSTRAINT FIX
+-- 6. TABEL JURNAL HARIAN
+CREATE TABLE IF NOT EXISTS daily_journals (
+  id TEXT PRIMARY KEY,
+  student_id TEXT,
+  student_name TEXT,
+  date DATE NOT NULL,
+  activity_title TEXT NOT NULL,
+  description TEXT,
+  learnings TEXT,
+  photo_url TEXT,
+  status TEXT DEFAULT 'menunggu',
+  teacher_feedback TEXT,
+  dudi_feedback TEXT,
+  ai_polished BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. TABEL PRESENSI / ABSENSI
+CREATE TABLE IF NOT EXISTS attendance_records (
+  id TEXT PRIMARY KEY,
+  student_id TEXT,
+  student_name TEXT,
+  date DATE NOT NULL,
+  time_in TEXT,
+  time_out TEXT,
+  status TEXT DEFAULT 'hadir',
+  notes TEXT,
+  location_address TEXT,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  photo_url TEXT,
+  validated_by_dudi BOOLEAN DEFAULT false
+);
+
+-- 8. TABEL PENILAIAN EVALUASI PKL
+CREATE TABLE IF NOT EXISTS evaluation_grades (
+  id TEXT PRIMARY KEY,
+  student_id TEXT,
+  student_name TEXT,
+  dudi_id TEXT,
+  jurnal_score NUMERIC DEFAULT 0,
+  laporan_score NUMERIC DEFAULT 0,
+  presentasi_score NUMERIC DEFAULT 0,
+  disiplin_score NUMERIC DEFAULT 0,
+  kerjasama_score NUMERIC DEFAULT 0,
+  inisiatif_score NUMERIC DEFAULT 0,
+  teknis_score NUMERIC DEFAULT 0,
+  final_score NUMERIC DEFAULT 0,
+  grade_letter TEXT,
+  certificate_number TEXT,
+  is_published BOOLEAN DEFAULT false
+);
+
+-- MIGRASI KOLOM UNTUK TABEL YANG SUDAH ADA SEBELUMNYA
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS password TEXT DEFAULT 'guru@123';
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '-';
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS email TEXT;
@@ -146,69 +199,26 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS start_date DATE;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS end_date DATE;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
--- PERBAIKAN FOREIGN KEY AGAR BISA HAPUS DUDI / GURU / SISWA TANPA ERROR CONSTRAINT
-ALTER TABLE students DROP CONSTRAINT IF EXISTS students_dudi_id_fkey;
-ALTER TABLE students ADD CONSTRAINT students_dudi_id_fkey FOREIGN KEY (dudi_id) REFERENCES dudis(id) ON DELETE SET NULL;
+ALTER TABLE daily_journals ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE daily_journals ADD COLUMN IF NOT EXISTS learnings TEXT;
+ALTER TABLE daily_journals ADD COLUMN IF NOT EXISTS teacher_feedback TEXT;
 
-ALTER TABLE students DROP CONSTRAINT IF EXISTS students_teacher_id_fkey;
-ALTER TABLE students ADD CONSTRAINT students_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE SET NULL;
-
--- 4. TABEL JURNAL HARIAN
-CREATE TABLE IF NOT EXISTS daily_journals (
-  id TEXT PRIMARY KEY,
-  student_id TEXT REFERENCES students(id) ON DELETE CASCADE,
-  student_name TEXT,
-  date DATE NOT NULL,
-  activity_title TEXT NOT NULL,
-  description TEXT,
-  learnings TEXT,
-  photo_url TEXT,
-  status TEXT DEFAULT 'menunggu',
-  teacher_feedback TEXT,
-  dudi_feedback TEXT,
-  ai_polished BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 5. TABEL PRESENSI / ABSENSI
-CREATE TABLE IF NOT EXISTS attendance_records (
-  id TEXT PRIMARY KEY,
-  student_id TEXT REFERENCES students(id) ON DELETE CASCADE,
-  student_name TEXT,
-  date DATE NOT NULL,
-  time_in TEXT,
-  time_out TEXT,
-  status TEXT DEFAULT 'hadir',
-  notes TEXT,
-  location_address TEXT,
-  latitude NUMERIC,
-  longitude NUMERIC,
-  photo_url TEXT,
--- 6. TABEL PENILAIAN EVALUASI PKL
-CREATE TABLE IF NOT EXISTS evaluation_grades (
-  id TEXT PRIMARY KEY,
-  student_id TEXT REFERENCES students(id) ON DELETE CASCADE,
-  student_name TEXT,
-  dudi_id TEXT,
-  jurnal_score NUMERIC DEFAULT 0,
-  laporan_score NUMERIC DEFAULT 0,
-  presentasi_score NUMERIC DEFAULT 0,
-  disiplin_score NUMERIC DEFAULT 0,
-  kerjasama_score NUMERIC DEFAULT 0,
-  inisiatif_score NUMERIC DEFAULT 0,
-  teknis_score NUMERIC DEFAULT 0,
-  final_score NUMERIC DEFAULT 0,
-  grade_letter TEXT,
-  certificate_number TEXT,
-  is_published BOOLEAN DEFAULT false
-);
+-- DUKUNGAN KONEKSI LIVE REAL-TIME (DISABLE ROW LEVEL SECURITY AGAR ANON KEY BEBAS AKSEST)
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE classes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE dudis DISABLE ROW LEVEL SECURITY;
+ALTER TABLE teachers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE students DISABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_journals DISABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_records DISABLE ROW LEVEL SECURITY;
+ALTER TABLE evaluation_grades DISABLE ROW LEVEL SECURITY;
 `;
 
 export async function syncUpsertUser(user: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('users').upsert({
+    const { error } = await client.from('users').upsert({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -219,6 +229,7 @@ export async function syncUpsertUser(user: any) {
       class_major: user.classMajor || null,
       password: user.password || 'password123'
     });
+    if (error) console.error('Supabase sync user error:', error);
   } catch (err) {
     console.warn('Supabase sync user failed:', err);
   }
@@ -228,7 +239,8 @@ export async function syncDeleteUser(id: string) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('users').delete().eq('id', id);
+    const { error } = await client.from('users').delete().eq('id', id);
+    if (error) console.error('Supabase delete user error:', error);
   } catch (err) {
     console.warn('Supabase delete user failed:', err);
   }
@@ -238,7 +250,7 @@ export async function syncUpsertDudi(dudi: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('dudis').upsert({
+    const { error } = await client.from('dudis').upsert({
       id: dudi.id,
       name: dudi.name,
       category: dudi.category || 'Teknik & Industri',
@@ -253,6 +265,7 @@ export async function syncUpsertDudi(dudi: any) {
       rating: dudi.rating || 5.0,
       status: dudi.status || 'aktif'
     });
+    if (error) console.error('Supabase sync dudi error:', error);
   } catch (err) {
     console.warn('Supabase sync dudi failed:', err);
   }
@@ -262,7 +275,8 @@ export async function syncDeleteDudi(id: string) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('dudis').delete().eq('id', id);
+    const { error } = await client.from('dudis').delete().eq('id', id);
+    if (error) console.error('Supabase delete dudi error:', error);
   } catch (err) {
     console.warn('Supabase delete dudi failed:', err);
   }
@@ -272,7 +286,7 @@ export async function syncUpsertTeacher(teacher: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('teachers').upsert({
+    const { error } = await client.from('teachers').upsert({
       id: teacher.id,
       name: teacher.name,
       nip: teacher.nip,
@@ -281,6 +295,7 @@ export async function syncUpsertTeacher(teacher: any) {
       assigned_student_count: teacher.assignedStudentCount || 0,
       password: teacher.password || 'guru@123'
     });
+    if (error) console.error('Supabase sync teacher error:', error);
   } catch (err) {
     console.warn('Supabase sync teacher failed:', err);
   }
@@ -290,7 +305,8 @@ export async function syncDeleteTeacher(id: string) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('teachers').delete().eq('id', id);
+    const { error } = await client.from('teachers').delete().eq('id', id);
+    if (error) console.error('Supabase delete teacher error:', error);
   } catch (err) {
     console.warn('Supabase delete teacher failed:', err);
   }
@@ -300,7 +316,7 @@ export async function syncUpsertStudent(student: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('students').upsert({
+    const { error } = await client.from('students').upsert({
       id: student.id,
       name: student.name,
       nisn: student.nisn,
@@ -316,6 +332,7 @@ export async function syncUpsertStudent(student: any) {
       end_date: student.endDate || null,
       photo_url: student.photoUrl || null
     });
+    if (error) console.error('Supabase sync student error:', error);
   } catch (err) {
     console.warn('Supabase sync student failed:', err);
   }
@@ -325,7 +342,8 @@ export async function syncDeleteStudent(id: string) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('students').delete().eq('id', id);
+    const { error } = await client.from('students').delete().eq('id', id);
+    if (error) console.error('Supabase delete student error:', error);
   } catch (err) {
     console.warn('Supabase delete student failed:', err);
   }
@@ -335,11 +353,12 @@ export async function syncUpsertClass(cls: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('classes').upsert({
+    const { error } = await client.from('classes').upsert({
       id: cls.id,
       class_name: cls.className,
       major_name: cls.majorName
     });
+    if (error) console.error('Supabase sync class error:', error);
   } catch (err) {
     console.warn('Supabase sync class failed:', err);
   }
@@ -349,7 +368,8 @@ export async function syncDeleteClass(id: string) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('classes').delete().eq('id', id);
+    const { error } = await client.from('classes').delete().eq('id', id);
+    if (error) console.error('Supabase delete class error:', error);
   } catch (err) {
     console.warn('Supabase delete class failed:', err);
   }
@@ -359,18 +379,19 @@ export async function syncUpsertJournal(journal: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('daily_journals').upsert({
+    const { error } = await client.from('daily_journals').upsert({
       id: journal.id,
       student_id: journal.studentId,
       student_name: journal.studentName,
       date: journal.date,
       activity_title: journal.activityTitle,
-      activity_details: journal.description || journal.activityTitle,
-      hours_spent: 8,
+      description: journal.description || journal.activityTitle,
+      learnings: journal.learnings || journal.description || '',
       photo_url: journal.photoUrl || null,
       status: journal.status || 'menunggu',
-      teacher_notes: journal.teacherFeedback || null
+      teacher_feedback: journal.teacherFeedback || null
     });
+    if (error) console.error('Supabase sync journal error:', error);
   } catch (err) {
     console.warn('Supabase sync journal failed:', err);
   }
@@ -380,7 +401,7 @@ export async function syncUpsertAttendance(att: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('attendance_records').upsert({
+    const { error } = await client.from('attendance_records').upsert({
       id: att.id,
       student_id: att.studentId,
       student_name: att.studentName,
@@ -394,6 +415,7 @@ export async function syncUpsertAttendance(att: any) {
       latitude: att.latitude || null,
       longitude: att.longitude || null
     });
+    if (error) console.error('Supabase sync attendance error:', error);
   } catch (err) {
     console.warn('Supabase sync attendance failed:', err);
   }
@@ -403,7 +425,7 @@ export async function syncUpsertGrade(grade: any) {
   const client = getSupabaseClient();
   if (!client) return;
   try {
-    await client.from('evaluation_grades').upsert({
+    const { error } = await client.from('evaluation_grades').upsert({
       id: grade.id,
       student_id: grade.studentId,
       student_name: grade.studentName,
@@ -420,8 +442,210 @@ export async function syncUpsertGrade(grade: any) {
       certificate_number: grade.certificateNumber || null,
       is_published: grade.isPublished ?? false
     });
+    if (error) console.error('Supabase sync grade error:', error);
   } catch (err) {
     console.warn('Supabase sync grade failed:', err);
+  }
+}
+
+export async function pushAllDataToSupabase(storeData: {
+  users?: any[];
+  dudis?: any[];
+  teachers?: any[];
+  students?: any[];
+  classes?: any[];
+  journals?: any[];
+  attendances?: any[];
+  grades?: any[];
+}) {
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      success: false,
+      message: 'Supabase client belum dikonfigurasi. Masukkan Supabase Project URL dan Anon Key!',
+      count: 0
+    };
+  }
+
+  let syncedCount = 0;
+  const errors: string[] = [];
+
+  try {
+    // 1. Classes
+    if (storeData.classes && storeData.classes.length > 0) {
+      const payload = storeData.classes.map((c) => ({
+        id: c.id,
+        class_name: c.className || 'XII',
+        major_name: c.majorName || '-'
+      }));
+      const { error } = await client.from('classes').upsert(payload);
+      if (error) errors.push(`Kelas (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 2. Users
+    if (storeData.users && storeData.users.length > 0) {
+      const payload = storeData.users.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email || `${u.id}@simpkl.com`,
+        role: u.role || 'siswa',
+        nisn: u.nisn || null,
+        nip: u.nip || null,
+        phone: u.phone || '-',
+        class_major: u.classMajor || null,
+        password: u.password || 'password123'
+      }));
+      const { error } = await client.from('users').upsert(payload);
+      if (error) errors.push(`Pengguna (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 3. DUDIs
+    if (storeData.dudis && storeData.dudis.length > 0) {
+      const payload = storeData.dudis.map((d) => ({
+        id: d.id,
+        name: d.name,
+        category: d.category || 'Teknik & Industri',
+        address: d.address || '',
+        city: d.city || 'Tangerang',
+        contact_person: d.contactPerson || d.contact_person || '',
+        phone: d.phone || '-',
+        email: d.email || '',
+        quota: Number(d.quota || 5),
+        assigned_count: Number(d.assignedCount || 0),
+        accepted_majors: d.acceptedMajors || [],
+        rating: Number(d.rating || 5.0),
+        status: d.status || 'aktif'
+      }));
+      const { error } = await client.from('dudis').upsert(payload);
+      if (error) errors.push(`Instansi (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 4. Teachers
+    if (storeData.teachers && storeData.teachers.length > 0) {
+      const payload = storeData.teachers.map((t) => ({
+        id: t.id,
+        name: t.name,
+        nip: t.nip || t.id,
+        phone: t.phone || '-',
+        email: t.email || `${t.nip || t.id}@guru.simpkl.com`,
+        assigned_student_count: Number(t.assignedStudentCount || 0),
+        password: t.password || 'guru@123'
+      }));
+      const { error } = await client.from('teachers').upsert(payload);
+      if (error) errors.push(`Guru (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 5. Students
+    if (storeData.students && storeData.students.length > 0) {
+      const payload = storeData.students.map((s) => ({
+        id: s.id,
+        name: s.name,
+        nisn: s.nisn || s.id,
+        class_major: s.classMajor || 'XII',
+        jurusan: s.jurusan || s.classMajor || '-',
+        phone: s.phone || '-',
+        dudi_id: s.dudiId || null,
+        dudi_name: s.dudiName || null,
+        teacher_id: s.teacherId || null,
+        teacher_name: s.teacherName || null,
+        industry_supervisor_name: s.industrySupervisorName || null,
+        status_pkl: s.statusPKL || 'belum_dapat',
+        start_date: s.startDate || null,
+        end_date: s.endDate || null,
+        photo_url: s.photoUrl || null
+      }));
+      const { error } = await client.from('students').upsert(payload);
+      if (error) errors.push(`Siswa (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 6. Daily Journals
+    if (storeData.journals && storeData.journals.length > 0) {
+      const payload = storeData.journals.map((j) => ({
+        id: j.id,
+        student_id: j.studentId,
+        student_name: j.studentName,
+        date: j.date,
+        activity_title: j.activityTitle,
+        description: j.description || j.activityTitle,
+        learnings: j.learnings || j.description || '',
+        photo_url: j.photoUrl || null,
+        status: j.status || 'menunggu',
+        teacher_feedback: j.teacherFeedback || null
+      }));
+      const { error } = await client.from('daily_journals').upsert(payload);
+      if (error) errors.push(`Jurnal (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 7. Attendance Records
+    if (storeData.attendances && storeData.attendances.length > 0) {
+      const payload = storeData.attendances.map((a) => ({
+        id: a.id,
+        student_id: a.studentId,
+        student_name: a.studentName,
+        date: a.date,
+        time_in: a.timeIn,
+        time_out: a.timeOut || null,
+        status: a.status,
+        notes: a.notes || null,
+        validated_by_dudi: a.validatedByDudi ?? false,
+        photo_url: a.photoUrl || null,
+        latitude: a.latitude || null,
+        longitude: a.longitude || null
+      }));
+      const { error } = await client.from('attendance_records').upsert(payload);
+      if (error) errors.push(`Presensi (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    // 8. Evaluation Grades
+    if (storeData.grades && storeData.grades.length > 0) {
+      const payload = storeData.grades.map((g) => ({
+        id: g.id,
+        student_id: g.studentId,
+        student_name: g.studentName,
+        dudi_id: g.dudiId,
+        jurnal_score: Number(g.jurnalScore || 0),
+        laporan_score: Number(g.laporanScore || 0),
+        presentasi_score: Number(g.presentasiScore || 0),
+        disiplin_score: Number(g.disiplinScore || 0),
+        kerjasama_score: Number(g.kerjasamaScore || 0),
+        inisiatif_score: Number(g.inisiatifScore || 0),
+        teknis_score: Number(g.teknisScore || 0),
+        final_score: Number(g.finalScore || 0),
+        grade_letter: g.gradeLetter || 'B',
+        certificate_number: g.certificateNumber || null,
+        is_published: g.isPublished ?? false
+      }));
+      const { error } = await client.from('evaluation_grades').upsert(payload);
+      if (error) errors.push(`Nilai (${error.message})`);
+      else syncedCount += payload.length;
+    }
+
+    if (errors.length > 0) {
+      return {
+        success: false,
+        message: `Sinkronisasi parsial (${syncedCount} item berhasil). Kendala: ${errors.join(', ')}`,
+        count: syncedCount
+      };
+    }
+
+    return {
+      success: true,
+      message: `Sukses! Sebanyak ${syncedCount} record data berhasil diunggah ke Supabase Cloud!`,
+      count: syncedCount
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Gagal tersambung ke Supabase Cloud: ${err?.message || String(err)}`,
+      count: syncedCount
+    };
   }
 }
 
@@ -431,14 +655,14 @@ export async function fetchAllDataFromSupabase() {
 
   try {
     const [
-      { data: users },
-      { data: dudis },
-      { data: teachers },
-      { data: students },
-      { data: classes },
-      { data: journals },
-      { data: attendances },
-      { data: grades }
+      { data: users, error: errUsers },
+      { data: dudis, error: errDudis },
+      { data: teachers, error: errTeachers },
+      { data: students, error: errStudents },
+      { data: classes, error: errClasses },
+      { data: journals, error: errJournals },
+      { data: attendances, error: errAttendances },
+      { data: grades, error: errGrades }
     ] = await Promise.all([
       client.from('users').select('*'),
       client.from('dudis').select('*'),
@@ -449,6 +673,10 @@ export async function fetchAllDataFromSupabase() {
       client.from('attendance_records').select('*'),
       client.from('evaluation_grades').select('*')
     ]);
+
+    if (errUsers || errDudis || errTeachers || errStudents) {
+      console.warn('Supabase fetch returned error:', { errUsers, errDudis, errTeachers, errStudents });
+    }
 
     return {
       users: users ? users.map((u: any) => ({
@@ -513,11 +741,11 @@ export async function fetchAllDataFromSupabase() {
         studentName: j.student_name,
         date: j.date,
         activityTitle: j.activity_title,
-        description: j.activity_details,
-        learnings: j.activity_details,
+        description: j.description || j.activity_details || '',
+        learnings: j.learnings || j.description || '',
         photoUrl: j.photo_url,
         status: j.status,
-        teacherFeedback: j.teacher_notes
+        teacherFeedback: j.teacher_feedback || j.teacher_notes
       })) : null,
       attendances: attendances ? attendances.map((a: any) => ({
         id: a.id,
@@ -556,3 +784,4 @@ export async function fetchAllDataFromSupabase() {
     return null;
   }
 }
+

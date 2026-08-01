@@ -37,7 +37,8 @@ import {
   syncUpsertJournal,
   syncUpsertAttendance,
   syncUpsertGrade,
-  fetchAllDataFromSupabase
+  fetchAllDataFromSupabase,
+  pushAllDataToSupabase
 } from '../lib/supabase';
 
 const STORE_KEY_PREFIX = 'sim_pkl_store_v2_';
@@ -135,6 +136,23 @@ export class DBStore {
     } catch (e) {
       console.warn('Initial cloud sync skipped or failed:', e);
     }
+  }
+
+  public async syncAllToCloud() {
+    return await pushAllDataToSupabase({
+      users: this.users,
+      dudis: this.dudis,
+      teachers: this.teachers,
+      students: this.students,
+      classes: this.classes,
+      journals: this.journals,
+      attendances: this.attendances,
+      grades: this.grades
+    });
+  }
+
+  public async reFetchFromCloud() {
+    await this.initCloudSync();
   }
 
   public subscribe(listener: () => void) {

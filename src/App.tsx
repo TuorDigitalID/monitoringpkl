@@ -106,7 +106,7 @@ export default function App() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center text-xs text-slate-500 space-y-1">
           <p className="font-bold text-slate-700">
             SIM PKL SMK MA © 2026 • by{' '}
-            <span className="text-indigo-600 font-extrabold">tutordigital.id</span>
+            <span className="text-orange-600 font-extrabold">tutordigital.id</span>
           </p>
           <p className="text-[11px] text-slate-400 font-medium">
             Sistem Manajemen Praktik Kerja Lapangan
