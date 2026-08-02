@@ -44,23 +44,33 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
     estimatedPerformanceGrade: string;
   } | null>(null);
 
+  const [isAllFallback, setIsAllFallback] = useState(false);
+
   const loadData = () => {
-    const allStudents = dbStore.getStudents();
-    const myStudents = allStudents.filter((s) => s.teacherId === currentUser.id || !s.teacherId);
-    setStudents(myStudents);
+    const assigned = dbStore.getStudentsForTeacher(currentUser);
+    if (assigned.length > 0) {
+      setStudents(assigned);
+      setIsAllFallback(false);
+      if (!selectedStudent || !assigned.some((s) => s.id === selectedStudent.id)) {
+        setSelectedStudent(assigned[0]);
+      }
+    } else {
+      const all = dbStore.getStudents();
+      setStudents(all);
+      setIsAllFallback(true);
+      if (!selectedStudent && all.length > 0) {
+        setSelectedStudent(all[0]);
+      }
+    }
     setJournals(dbStore.getJournals());
     setSupervisions(dbStore.getSupervisions());
-
-    if (!selectedStudent && myStudents.length > 0) {
-      setSelectedStudent(myStudents[0]);
-    }
   };
 
   useEffect(() => {
     loadData();
     const unsubscribe = dbStore.subscribe(loadData);
     return () => unsubscribe();
-  }, [currentUser.id]);
+  }, [currentUser]);
 
   const handleVerifyJournal = (journalId: string, newStatus: 'disetujui' | 'revisi', feedback: string) => {
     const journal = journals.find((j) => j.id === journalId);
@@ -161,6 +171,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser 
 
   return (
     <div className="space-y-6">
+      {isAllFallback && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Info Synchronization Plotting:</strong> Belum ada siswa yang secara khusus diplot ke nama/NIP Anda ({currentUser.name}) di Master Plotting. Menampilkan seluruh data siswa sekolah.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center space-x-3">

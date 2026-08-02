@@ -15,7 +15,7 @@ import {
   UserCheck,
   Download
 } from 'lucide-react';
-import { User, DailyJournal, AttendanceRecord, EvaluationGrade } from '../types';
+import { User, DailyJournal, AttendanceRecord, EvaluationGrade, Student } from '../types';
 import { dbStore } from '../data/dbStore';
 import { AttendanceModal } from './AttendanceModal';
 import { JournalAIAssistantModal } from './JournalAIAssistantModal';
@@ -26,6 +26,7 @@ interface StudentDashboardProps {
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser }) => {
+  const [student, setStudent] = useState<Student>(() => dbStore.getStudentForUser(currentUser));
   const [journals, setJournals] = useState<DailyJournal[]>([]);
   const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
   const [grade, setGrade] = useState<EvaluationGrade | undefined>();
@@ -38,31 +39,29 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser 
   const [learnings, setLearnings] = useState('');
   const [activeTab, setActiveTab] = useState<'jurnal' | 'presensi' | 'sertifikat'>('jurnal');
 
-  const student = dbStore.getStudentById(currentUser.id) || {
-    id: currentUser.id,
-    name: currentUser.name,
-    nisn: currentUser.nisn || '0054321098',
-    classMajor: currentUser.classMajor || 'XII RPL 1',
-    phone: currentUser.phone || '081234567890',
-    dudiName: 'PT Telkom Indonesia Tbk',
-    teacherName: 'Drs. Bambang Hidayat, M.Pd.',
-    industrySupervisorName: 'Ir. Hendra Gunawan',
-    statusPKL: 'sedang_pkl' as const,
-    startDate: '2026-07-01',
-    endDate: '2026-10-01',
-  };
-
   const loadData = () => {
-    setJournals(dbStore.getJournalsByStudent(currentUser.id));
-    setAttendances(dbStore.getAttendancesByStudent(currentUser.id));
-    setGrade(dbStore.getGradeByStudent(currentUser.id));
+    const activeStudent = dbStore.getStudentForUser(currentUser);
+    setStudent(activeStudent);
+    
+    // Get journals, attendances, and grade matching either student.id or currentUser.id
+    const studentJournals = dbStore.getJournals().filter(
+      (j) => j.studentId === activeStudent.id || j.studentId === currentUser.id
+    );
+    const studentAttendances = dbStore.getAttendances().filter(
+      (a) => a.studentId === activeStudent.id || a.studentId === currentUser.id
+    );
+    const studentGrade = dbStore.getGradeByStudent(activeStudent.id) || dbStore.getGradeByStudent(currentUser.id);
+
+    setJournals(studentJournals);
+    setAttendances(studentAttendances);
+    setGrade(studentGrade);
   };
 
   useEffect(() => {
     loadData();
     const unsubscribe = dbStore.subscribe(loadData);
     return () => unsubscribe();
-  }, [currentUser.id]);
+  }, [currentUser]);
 
   const handleAddJournal = (e: React.FormEvent) => {
     e.preventDefault();

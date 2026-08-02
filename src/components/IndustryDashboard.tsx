@@ -30,13 +30,22 @@ export const IndustryDashboard: React.FC<IndustryDashboardProps> = ({ currentUse
   const [teknisScore, setTeknisScore] = useState(96);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const [companyName, setCompanyName] = useState('Instansi DUDI Mitra');
+
   const loadData = () => {
+    const matchedDudi = dbStore.getDudiForUser(currentUser);
+    setCompanyName(matchedDudi ? matchedDudi.name : currentUser.name || 'Instansi DUDI Mitra');
+
+    const dudiStudents = dbStore.getStudentsForDudi(currentUser);
     const allStudents = dbStore.getStudents();
-    setStudents(allStudents);
+    
+    // If specific students are plotted for this DUDI, show them; otherwise show all plotted students
+    const activeList = dudiStudents.length > 0 ? dudiStudents : allStudents.filter((s) => s.dudiId || s.dudiName);
+    setStudents(activeList);
     setAttendances(dbStore.getAttendances());
 
-    if (!selectedStudent && allStudents.length > 0) {
-      setSelectedStudent(allStudents[0]);
+    if (!selectedStudent && activeList.length > 0) {
+      setSelectedStudent(activeList[0]);
     }
   };
 
@@ -44,7 +53,7 @@ export const IndustryDashboard: React.FC<IndustryDashboardProps> = ({ currentUse
     loadData();
     const unsubscribe = dbStore.subscribe(loadData);
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
   const handleValidateAttendance = (attId: string, validated: boolean) => {
     dbStore.validateAttendance(attId, validated);
@@ -95,7 +104,7 @@ export const IndustryDashboard: React.FC<IndustryDashboardProps> = ({ currentUse
             <Building2 className="w-3.5 h-3.5 text-purple-300" />
             <span>Portal Pembimbing Industri DUDI</span>
           </div>
-          <h2 className="text-xl font-black">PT Telkom Indonesia & Mitra DUDI</h2>
+          <h2 className="text-xl font-black">{companyName}</h2>
           <p className="text-xs text-purple-200">
             Pengelolaan Presensi, Validasi Jurnal & Penilaian Kinerja Magang (Bobot 60%)
           </p>

@@ -451,6 +451,41 @@ export class DBStore {
     }
   }
 
+  public recalculateCounts() {
+    // Recalculate Teacher assigned student count based on plotting data
+    let teacherUpdated = false;
+    this.teachers = this.teachers.map((tch) => {
+      const count = this.students.filter(
+        (s) =>
+          s.teacherId === tch.id ||
+          (tch.nip && s.teacherId === tch.nip) ||
+          (s.teacherName && s.teacherName.toLowerCase().trim() === tch.name.toLowerCase().trim())
+      ).length;
+      if (tch.assignedStudentCount !== count) {
+        teacherUpdated = true;
+        return { ...tch, assignedStudentCount: count };
+      }
+      return tch;
+    });
+    if (teacherUpdated) saveToStorage('teachers', this.teachers);
+
+    // Recalculate DUDI assigned count based on plotting data
+    let dudiUpdated = false;
+    this.dudis = this.dudis.map((dudi) => {
+      const count = this.students.filter(
+        (s) =>
+          s.dudiId === dudi.id ||
+          (s.dudiName && s.dudiName.toLowerCase().trim() === dudi.name.toLowerCase().trim())
+      ).length;
+      if (dudi.assignedCount !== count) {
+        dudiUpdated = true;
+        return { ...dudi, assignedCount: count };
+      }
+      return dudi;
+    });
+    if (dudiUpdated) saveToStorage('dudis', this.dudis);
+  }
+
   // --- Students ---
   public getStudents(): Student[] {
     return this.students;
@@ -460,11 +495,37 @@ export class DBStore {
     return this.students.find((s) => s.id === id);
   }
 
+  public getStudentForUser(user: User): Student {
+    // Lookup by id, nisn, stripped id, or name
+    const found = this.students.find(
+      (s) =>
+        s.id === user.id ||
+        (user.nisn && s.nisn === user.nisn) ||
+        (user.id && s.id === user.id.replace(/^usr-(std-)?/, '')) ||
+        (user.name && s.name.toLowerCase().trim() === user.name.toLowerCase().trim())
+    );
+
+    if (found) {
+      return found;
+    }
+
+    // Dynamic fallback if student is not yet in Master Siswa
+    return {
+      id: user.id,
+      name: user.name,
+      nisn: user.nisn || '0000000000',
+      classMajor: user.classMajor || 'XII',
+      phone: user.phone || '-',
+      statusPKL: 'belum_dapat'
+    };
+  }
+
   public addStudent(student: Student) {
     this.students.unshift(student);
     saveToStorage('students', this.students);
     syncUpsertStudent(student);
     this.syncMasterToUsers(false);
+    this.recalculateCounts();
     this.notify();
   }
 
@@ -473,6 +534,7 @@ export class DBStore {
     saveToStorage('students', this.students);
     syncUpsertStudent(student);
     this.syncMasterToUsers(false);
+    this.recalculateCounts();
     this.notify();
   }
 
@@ -486,6 +548,7 @@ export class DBStore {
       this.users = this.users.filter((u) => u.nisn !== std.nisn && u.id !== std.id);
       saveToStorage('users', this.users);
     }
+    this.recalculateCounts();
     this.notify();
   }
 
@@ -494,11 +557,39 @@ export class DBStore {
     return this.teachers;
   }
 
+  public getTeacherForUser(user: User): Teacher | undefined {
+    return this.teachers.find(
+      (t) =>
+        t.id === user.id ||
+        (user.nip && t.nip === user.nip) ||
+        (user.email && t.email?.toLowerCase().trim() === user.email.toLowerCase().trim()) ||
+        (user.name && t.name.toLowerCase().trim() === user.name.toLowerCase().trim()) ||
+        (user.id && t.id === user.id.replace(/^usr-(tch-)?/, ''))
+    );
+  }
+
+  public getStudentsForTeacher(user: User): Student[] {
+    const teacher = this.getTeacherForUser(user);
+    const teacherId = teacher ? teacher.id : user.id;
+    const teacherNip = teacher ? teacher.nip : user.nip;
+    const teacherName = teacher ? teacher.name : user.name;
+
+    return this.students.filter(
+      (s) =>
+        s.teacherId === teacherId ||
+        s.teacherId === user.id ||
+        (teacherNip && s.teacherId === teacherNip) ||
+        (user.nip && s.teacherId === user.nip) ||
+        (s.teacherName && teacherName && s.teacherName.toLowerCase().trim() === teacherName.toLowerCase().trim())
+    );
+  }
+
   public addTeacher(teacher: Teacher) {
     this.teachers.unshift(teacher);
     saveToStorage('teachers', this.teachers);
     syncUpsertTeacher(teacher);
     this.syncMasterToUsers(false);
+    this.recalculateCounts();
     this.notify();
   }
 
@@ -507,6 +598,7 @@ export class DBStore {
     saveToStorage('teachers', this.teachers);
     syncUpsertTeacher(teacher);
     this.syncMasterToUsers(false);
+    this.recalculateCounts();
     this.notify();
   }
 
@@ -519,12 +611,39 @@ export class DBStore {
     saveToStorage('teachers', this.teachers);
     saveToStorage('students', this.students);
     syncDeleteTeacher(id);
+    this.recalculateCounts();
     this.notify();
   }
 
   // --- DUDIs ---
   public getDudis(): Dudi[] {
     return this.dudis;
+  }
+
+  public getDudiForUser(user: User): Dudi | undefined {
+    return this.dudis.find(
+      (d) =>
+        d.id === user.id ||
+        (user.email && d.email?.toLowerCase().trim() === user.email.toLowerCase().trim()) ||
+        (user.name && d.name.toLowerCase().trim() === user.name.toLowerCase().trim())
+    );
+  }
+
+  public getStudentsForDudi(user: User): Student[] {
+    const dudi = this.getDudiForUser(user);
+    if (!dudi) {
+      return this.students.filter(
+        (s) =>
+          s.dudiId === user.id ||
+          (s.dudiName && user.name && s.dudiName.toLowerCase().includes(user.name.toLowerCase()))
+      );
+    }
+
+    return this.students.filter(
+      (s) =>
+        s.dudiId === dudi.id ||
+        (s.dudiName && s.dudiName.toLowerCase().trim() === dudi.name.toLowerCase().trim())
+    );
   }
 
   public addDudi(dudi: Dudi) {
