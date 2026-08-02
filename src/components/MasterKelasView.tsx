@@ -93,17 +93,9 @@ export const MasterKelasView: React.FC = () => {
 
   // Count students for a class name
   const getStudentCount = (clsName: string) => {
-    const count = students.filter(
+    return students.filter(
       (s) => s.classMajor.toLowerCase().trim() === clsName.toLowerCase().trim()
     ).length;
-
-    // Default aesthetic mock counts matching illustration if 0
-    if (count === 0) {
-      if (clsName.includes('TKR')) return 35;
-      if (clsName.includes('DKV')) return 59;
-      return 30;
-    }
-    return count;
   };
 
   // Filter class list

@@ -91,47 +91,182 @@ export class DBStore {
     const matchedUser = this.users.find((u) => u.role === savedUserRole) || this.users[0];
     this.currentUser = matchedUser;
 
+    // Run initial sync from Master Data Siswa and Master Data Guru to Users
+    this.syncMasterToUsers(false);
+
     // Asynchronously fetch latest dataset from Supabase Cloud if connected
     this.initCloudSync();
+  }
+
+  public syncMasterToUsers(notify: boolean = true) {
+    let updated = false;
+
+    // 1. Sync Students -> Users
+    this.students.forEach((std) => {
+      const existingIdx = this.users.findIndex(
+        (u) => (u.nisn && u.nisn === std.nisn) || u.id === std.id
+      );
+      const generatedEmail = `${(std.nisn || std.id).toLowerCase()}@siswa.simpkl.com`;
+      if (existingIdx >= 0) {
+        const current = this.users[existingIdx];
+        if (
+          current.name !== std.name ||
+          current.classMajor !== std.classMajor ||
+          current.phone !== std.phone ||
+          current.nisn !== std.nisn
+        ) {
+          this.users[existingIdx] = {
+            ...current,
+            name: std.name,
+            nisn: std.nisn,
+            classMajor: std.classMajor,
+            phone: std.phone || current.phone,
+            role: 'siswa'
+          };
+          syncUpsertUser(this.users[existingIdx]);
+          updated = true;
+        }
+      } else {
+        const newUser: User = {
+          id: std.id.startsWith('usr-') ? std.id : `usr-std-${std.id}`,
+          name: std.name,
+          email: generatedEmail,
+          role: 'siswa',
+          nisn: std.nisn,
+          phone: std.phone || '-',
+          classMajor: std.classMajor,
+          password: 'password123'
+        };
+        this.users.push(newUser);
+        syncUpsertUser(newUser);
+        updated = true;
+      }
+    });
+
+    // 2. Sync Teachers -> Users
+    this.teachers.forEach((tch) => {
+      const existingIdx = this.users.findIndex(
+        (u) =>
+          (u.nip && u.nip === tch.nip) ||
+          u.id === tch.id ||
+          (u.email && u.email.toLowerCase() === tch.email?.toLowerCase())
+      );
+      const generatedEmail = tch.email || `${(tch.nip || tch.id).toLowerCase()}@guru.simpkl.com`;
+      if (existingIdx >= 0) {
+        const current = this.users[existingIdx];
+        if (
+          current.name !== tch.name ||
+          current.nip !== tch.nip ||
+          current.phone !== tch.phone ||
+          current.email !== generatedEmail
+        ) {
+          this.users[existingIdx] = {
+            ...current,
+            name: tch.name,
+            nip: tch.nip,
+            email: generatedEmail,
+            phone: tch.phone || current.phone,
+            password: tch.password || current.password || 'guru@123',
+            role: 'guru'
+          };
+          syncUpsertUser(this.users[existingIdx]);
+          updated = true;
+        }
+      } else {
+        const newUser: User = {
+          id: tch.id.startsWith('usr-') ? tch.id : `usr-tch-${tch.id}`,
+          name: tch.name,
+          email: generatedEmail,
+          role: 'guru',
+          nip: tch.nip,
+          phone: tch.phone || '-',
+          password: tch.password || 'guru@123'
+        };
+        this.users.push(newUser);
+        syncUpsertUser(newUser);
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      saveToStorage('users', this.users);
+      if (notify) this.notify();
+    }
   }
 
   private async initCloudSync() {
     try {
       const cloudData = await fetchAllDataFromSupabase();
       if (cloudData) {
+        let hasNewDataFromCloud = false;
+
         if (Array.isArray(cloudData.users) && cloudData.users.length > 0) {
           this.users = cloudData.users;
           saveToStorage('users', this.users);
+          hasNewDataFromCloud = true;
+        } else if (this.users.length > 0) {
+          pushAllDataToSupabase({ users: this.users });
         }
-        if (Array.isArray(cloudData.dudis)) {
+
+        if (Array.isArray(cloudData.dudis) && cloudData.dudis.length > 0) {
           this.dudis = cloudData.dudis;
           saveToStorage('dudis', this.dudis);
+          hasNewDataFromCloud = true;
+        } else if (this.dudis.length > 0) {
+          pushAllDataToSupabase({ dudis: this.dudis });
         }
-        if (Array.isArray(cloudData.teachers)) {
+
+        if (Array.isArray(cloudData.teachers) && cloudData.teachers.length > 0) {
           this.teachers = cloudData.teachers;
           saveToStorage('teachers', this.teachers);
+          hasNewDataFromCloud = true;
+        } else if (this.teachers.length > 0) {
+          pushAllDataToSupabase({ teachers: this.teachers });
         }
-        if (Array.isArray(cloudData.students)) {
+
+        if (Array.isArray(cloudData.students) && cloudData.students.length > 0) {
           this.students = cloudData.students;
           saveToStorage('students', this.students);
+          hasNewDataFromCloud = true;
+        } else if (this.students.length > 0) {
+          pushAllDataToSupabase({ students: this.students });
         }
-        if (Array.isArray(cloudData.classes)) {
+
+        if (Array.isArray(cloudData.classes) && cloudData.classes.length > 0) {
           this.classes = cloudData.classes;
           saveToStorage('classes', this.classes);
+          hasNewDataFromCloud = true;
+        } else if (this.classes.length > 0) {
+          pushAllDataToSupabase({ classes: this.classes });
         }
-        if (Array.isArray(cloudData.journals)) {
+
+        if (Array.isArray(cloudData.journals) && cloudData.journals.length > 0) {
           this.journals = cloudData.journals;
           saveToStorage('journals', this.journals);
+          hasNewDataFromCloud = true;
+        } else if (this.journals.length > 0) {
+          pushAllDataToSupabase({ journals: this.journals });
         }
-        if (Array.isArray(cloudData.attendances)) {
+
+        if (Array.isArray(cloudData.attendances) && cloudData.attendances.length > 0) {
           this.attendances = cloudData.attendances;
           saveToStorage('attendances', this.attendances);
+          hasNewDataFromCloud = true;
+        } else if (this.attendances.length > 0) {
+          pushAllDataToSupabase({ attendances: this.attendances });
         }
-        if (Array.isArray(cloudData.grades)) {
+
+        if (Array.isArray(cloudData.grades) && cloudData.grades.length > 0) {
           this.grades = cloudData.grades;
           saveToStorage('grades', this.grades);
+          hasNewDataFromCloud = true;
+        } else if (this.grades.length > 0) {
+          pushAllDataToSupabase({ grades: this.grades });
         }
-        this.notify();
+
+        if (hasNewDataFromCloud) {
+          this.notify();
+        }
       }
     } catch (e) {
       console.warn('Initial cloud sync skipped or failed:', e);
@@ -228,6 +363,7 @@ export class DBStore {
   }
 
   public getUsers(): User[] {
+    this.syncMasterToUsers(false);
     return this.users;
   }
 
@@ -235,6 +371,35 @@ export class DBStore {
     this.users.unshift(user);
     saveToStorage('users', this.users);
     syncUpsertUser(user);
+
+    // If added user is a student or teacher, also ensure presence in master data
+    if (user.role === 'siswa' && user.nisn) {
+      const exists = this.students.some((s) => s.nisn === user.nisn || s.id === user.id);
+      if (!exists) {
+        this.addStudent({
+          id: user.id,
+          name: user.name,
+          nisn: user.nisn,
+          classMajor: user.classMajor || 'XII',
+          phone: user.phone || '-',
+          statusPKL: 'belum_dapat'
+        });
+      }
+    } else if (user.role === 'guru' && user.nip) {
+      const exists = this.teachers.some((t) => t.nip === user.nip || t.id === user.id);
+      if (!exists) {
+        this.addTeacher({
+          id: user.id,
+          name: user.name,
+          nip: user.nip,
+          email: user.email,
+          phone: user.phone || '-',
+          assignedStudentCount: 0,
+          password: user.password || 'guru@123'
+        });
+      }
+    }
+
     this.notify();
   }
 
@@ -242,6 +407,31 @@ export class DBStore {
     this.users = this.users.map((u) => (u.id === user.id ? user : u));
     saveToStorage('users', this.users);
     syncUpsertUser(user);
+
+    // Sync back to student / teacher if applicable
+    if (user.role === 'siswa' && user.nisn) {
+      const std = this.students.find((s) => s.nisn === user.nisn || s.id === user.id);
+      if (std) {
+        this.updateStudent({
+          ...std,
+          name: user.name,
+          classMajor: user.classMajor || std.classMajor,
+          phone: user.phone || std.phone
+        });
+      }
+    } else if (user.role === 'guru' && user.nip) {
+      const tch = this.teachers.find((t) => t.nip === user.nip || t.id === user.id);
+      if (tch) {
+        this.updateTeacher({
+          ...tch,
+          name: user.name,
+          email: user.email || tch.email,
+          phone: user.phone || tch.phone,
+          password: user.password || tch.password
+        });
+      }
+    }
+
     this.notify();
   }
 
@@ -274,6 +464,7 @@ export class DBStore {
     this.students.unshift(student);
     saveToStorage('students', this.students);
     syncUpsertStudent(student);
+    this.syncMasterToUsers(false);
     this.notify();
   }
 
@@ -281,13 +472,20 @@ export class DBStore {
     this.students = this.students.map((s) => (s.id === student.id ? student : s));
     saveToStorage('students', this.students);
     syncUpsertStudent(student);
+    this.syncMasterToUsers(false);
     this.notify();
   }
 
   public deleteStudent(id: string) {
+    const std = this.students.find((s) => s.id === id);
     this.students = this.students.filter((s) => s.id !== id);
     saveToStorage('students', this.students);
     syncDeleteStudent(id);
+
+    if (std) {
+      this.users = this.users.filter((u) => u.nisn !== std.nisn && u.id !== std.id);
+      saveToStorage('users', this.users);
+    }
     this.notify();
   }
 
@@ -300,6 +498,7 @@ export class DBStore {
     this.teachers.unshift(teacher);
     saveToStorage('teachers', this.teachers);
     syncUpsertTeacher(teacher);
+    this.syncMasterToUsers(false);
     this.notify();
   }
 
@@ -307,6 +506,7 @@ export class DBStore {
     this.teachers = this.teachers.map((t) => (t.id === teacher.id ? teacher : t));
     saveToStorage('teachers', this.teachers);
     syncUpsertTeacher(teacher);
+    this.syncMasterToUsers(false);
     this.notify();
   }
 

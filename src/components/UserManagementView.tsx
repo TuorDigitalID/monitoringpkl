@@ -12,21 +12,28 @@ import {
   AlertCircle,
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
+  UserCheck,
+  GraduationCap,
+  Users
 } from 'lucide-react';
-import { User, UserRole, ClassMajorItem } from '../types';
+import { User, UserRole, ClassMajorItem, Student, Teacher } from '../types';
 import { dbStore } from '../data/dbStore';
 import { downloadUserTemplateExcel, exportUsersToExcel } from '../lib/exportExcel';
 import * as XLSX from 'xlsx';
 
 export const UserManagementView: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<ClassMajorItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,14 +49,51 @@ export const UserManagementView: React.FC = () => {
 
   useEffect(() => {
     setUsers(dbStore.getUsers());
+    setStudents(dbStore.getStudents());
+    setTeachers(dbStore.getTeachers());
     setClasses(dbStore.getClasses());
 
     const unsubscribe = dbStore.subscribe(() => {
       setUsers(dbStore.getUsers());
+      setStudents(dbStore.getStudents());
+      setTeachers(dbStore.getTeachers());
       setClasses(dbStore.getClasses());
     });
     return () => unsubscribe();
   }, []);
+
+  const handleSyncMasterData = () => {
+    setIsSyncing(true);
+    dbStore.syncMasterToUsers(true);
+    setTimeout(() => {
+      setIsSyncing(false);
+      showToast('success', 'Berhasil menyinkronkan seluruh data dari Master Siswa & Master Guru!');
+    }, 400);
+  };
+
+  const handleSelectMasterStudent = (studentId: string) => {
+    if (!studentId) return;
+    const std = students.find((s) => s.id === studentId);
+    if (std) {
+      setName(std.name);
+      setNisnNip(std.nisn);
+      setEmail(`${std.nisn}@siswa.simpkl.com`);
+      setPhone(std.phone || '-');
+      setSelectedClass(std.classMajor || '');
+    }
+  };
+
+  const handleSelectMasterTeacher = (teacherId: string) => {
+    if (!teacherId) return;
+    const tch = teachers.find((t) => t.id === teacherId);
+    if (tch) {
+      setName(tch.name);
+      setNisnNip(tch.nip);
+      setEmail(tch.email || `${tch.nip}@guru.simpkl.com`);
+      setPhone(tch.phone || '-');
+      setPassword(tch.password || 'guru@123');
+    }
+  };
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -315,7 +359,17 @@ export const UserManagementView: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center space-x-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                onClick={handleSyncMasterData}
+                disabled={isSyncing}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold text-xs text-white flex items-center space-x-1.5 shadow-2xs transition-colors disabled:opacity-50"
+                title="Tarik & Sinkronkan seluruh data dari Master Siswa & Guru ke Akun Login"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>Sinkronkan Master Data</span>
+              </button>
+
               <button
                 onClick={downloadUserTemplateExcel}
                 className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 flex items-center space-x-1.5 shadow-2xs transition-colors"
@@ -340,6 +394,21 @@ export const UserManagementView: React.FC = () => {
                 <Upload className="w-3.5 h-3.5" />
                 <span>Unggah Excel</span>
               </button>
+            </div>
+          </div>
+
+          {/* Master Integration Info Banner */}
+          <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-xs text-indigo-950 flex items-start space-x-3 shadow-2xs">
+            <UserCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-extrabold text-indigo-900">
+                Terhubung Otomatis ke Master Data Siswa & Guru
+              </p>
+              <p className="text-[11px] text-indigo-700 leading-relaxed">
+                Semua akun login pengguna diambil & disinkronkan secara real-time dari{' '}
+                <strong className="font-bold text-indigo-950">Master Data Siswa ({students.length} Siswa)</strong> dan{' '}
+                <strong className="font-bold text-indigo-950">Master Data Guru ({teachers.length} Guru)</strong>. Tambah atau impor di Master Data otomatis membuat akun login!
+              </p>
             </div>
           </div>
 
@@ -419,8 +488,20 @@ export const UserManagementView: React.FC = () => {
                         </td>
 
                         <td className="py-3.5 px-3 space-y-0.5">
-                          <div className="font-extrabold text-slate-900 text-xs">
-                            {u.name}
+                          <div className="font-extrabold text-slate-900 text-xs flex items-center space-x-1.5 flex-wrap">
+                            <span>{u.name}</span>
+                            {u.role === 'siswa' && (
+                              <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60">
+                                <GraduationCap className="w-2.5 h-2.5 text-blue-600" />
+                                <span>Master Siswa</span>
+                              </span>
+                            )}
+                            {u.role === 'guru' && (
+                              <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                                <Users className="w-2.5 h-2.5 text-emerald-600" />
+                                <span>Master Guru</span>
+                              </span>
+                            )}
                           </div>
                           {u.classMajor && (
                             <div className="text-[10px] text-indigo-600 font-bold">
@@ -543,6 +624,47 @@ export const UserManagementView: React.FC = () => {
                   <option value="admin">Koordinator Sekolah (Admin)</option>
                 </select>
               </div>
+
+              {/* Master Data Quick Picker */}
+              {role === 'siswa' && students.length > 0 && (
+                <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1">
+                  <label className="block text-blue-900 font-bold text-[11px] flex items-center space-x-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Ambil Data dari Master Data Siswa</span>
+                  </label>
+                  <select
+                    onChange={(e) => handleSelectMasterStudent(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-blue-200 text-xs bg-white font-medium text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="">-- Pilih Siswa Terdaftar --</option>
+                    {students.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.nisn}) - {s.classMajor}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {role === 'guru' && teachers.length > 0 && (
+                <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-xl space-y-1">
+                  <label className="block text-emerald-900 font-bold text-[11px] flex items-center space-x-1">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Ambil Data dari Master Data Guru</span>
+                  </label>
+                  <select
+                    onChange={(e) => handleSelectMasterTeacher(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-emerald-200 text-xs bg-white font-medium text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    <option value="">-- Pilih Guru Terdaftar --</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.nip})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-slate-700 font-semibold mb-1">
