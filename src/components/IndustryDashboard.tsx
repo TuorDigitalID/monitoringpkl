@@ -16,9 +16,10 @@ import { exportAttendancesToExcel, exportGradesToExcel } from '../lib/exportExce
 
 interface IndustryDashboardProps {
   currentUser: User;
+  activeMenuItem?: string;
 }
 
-export const IndustryDashboard: React.FC<IndustryDashboardProps> = ({ currentUser }) => {
+export const IndustryDashboard: React.FC<IndustryDashboardProps> = ({ currentUser, activeMenuItem }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);

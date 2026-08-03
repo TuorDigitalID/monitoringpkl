@@ -104,7 +104,10 @@ export class DBStore {
     // 1. Sync Students -> Users
     this.students.forEach((std) => {
       const existingIdx = this.users.findIndex(
-        (u) => (u.nisn && u.nisn === std.nisn) || u.id === std.id
+        (u) =>
+          (u.nisn && u.nisn === std.nisn) ||
+          u.id === std.id ||
+          (u.name && u.name.toLowerCase().trim() === std.name.toLowerCase().trim())
       );
       const generatedEmail = `${(std.nisn || std.id).toLowerCase()}@siswa.simpkl.com`;
       if (existingIdx >= 0) {
@@ -149,7 +152,8 @@ export class DBStore {
         (u) =>
           (u.nip && u.nip === tch.nip) ||
           u.id === tch.id ||
-          (u.email && u.email.toLowerCase() === tch.email?.toLowerCase())
+          (u.email && u.email.toLowerCase() === tch.email?.toLowerCase()) ||
+          (u.name && u.name.toLowerCase().trim() === tch.name.toLowerCase().trim())
       );
       const generatedEmail = tch.email || `${(tch.nip || tch.id).toLowerCase()}@guru.simpkl.com`;
       if (existingIdx >= 0) {
@@ -181,6 +185,44 @@ export class DBStore {
           nip: tch.nip,
           phone: tch.phone || '-',
           password: tch.password || 'guru@123'
+        };
+        this.users.push(newUser);
+        syncUpsertUser(newUser);
+        updated = true;
+      }
+    });
+
+    // 3. Sync DUDIs -> Users
+    this.dudis.forEach((dudi) => {
+      const existingIdx = this.users.findIndex(
+        (u) =>
+          u.id === dudi.id ||
+          (u.email && u.email.toLowerCase() === dudi.email?.toLowerCase()) ||
+          (u.name && u.name.toLowerCase().trim() === dudi.name.toLowerCase().trim())
+      );
+      const generatedEmail = dudi.email || `${dudi.id}@dudi.simpkl.com`;
+      if (existingIdx >= 0) {
+        const current = this.users[existingIdx];
+        if (current.name !== dudi.name || current.email !== generatedEmail) {
+          this.users[existingIdx] = {
+            ...current,
+            name: dudi.name,
+            email: generatedEmail,
+            phone: dudi.phone || current.phone,
+            password: current.password || 'dudi123',
+            role: 'dudi'
+          };
+          syncUpsertUser(this.users[existingIdx]);
+          updated = true;
+        }
+      } else {
+        const newUser: User = {
+          id: dudi.id.startsWith('usr-') ? dudi.id : `usr-dudi-${dudi.id}`,
+          name: dudi.name,
+          email: generatedEmail,
+          role: 'dudi',
+          phone: dudi.phone || '-',
+          password: 'dudi123'
         };
         this.users.push(newUser);
         syncUpsertUser(newUser);
@@ -307,41 +349,181 @@ export class DBStore {
   }
 
   public login(identifier: string, password?: string): { success: boolean; message?: string; user?: User } {
+    // 1. Always perform sync from Master Siswa, Master Guru, and Master DUDI first
+    this.syncMasterToUsers(false);
+
     const term = identifier.trim().toLowerCase();
-    
-    // Find matching user by email, nisn, nip, or id
+
+    // 2. Find matching user in this.users by email, nisn, nip, id, or name
     let matched = this.users.find((u) => {
-      if (u.email && u.email.toLowerCase() === term) return true;
-      if (u.nisn && u.nisn.toLowerCase() === term) return true;
-      if (u.nip && u.nip.toLowerCase() === term) return true;
-      if (u.id.toLowerCase() === term) return true;
+      if (u.email && u.email.toLowerCase().trim() === term) return true;
+      if (u.nisn && u.nisn.toLowerCase().trim() === term) return true;
+      if (u.nip && u.nip.toLowerCase().trim() === term) return true;
+      if (u.id.toLowerCase().trim() === term) return true;
+      if (u.name && u.name.toLowerCase().trim() === term) return true;
       return false;
     });
 
-    // Fallback search by role keywords or common demo emails (e.g. admin@simpkl.com)
+    // 3. Direct lookup in Master Guru (this.teachers)
     if (!matched) {
-      if (term.includes('admin') || term.includes('koordinator') || term === 'admin@simpkl.com' || term === 'admin@smkn1.sch.id') {
+      const teacher = this.teachers.find((t) => {
+        if (t.nip && t.nip.toLowerCase().trim() === term) return true;
+        if (t.email && t.email.toLowerCase().trim() === term) return true;
+        if (t.id.toLowerCase().trim() === term) return true;
+        if (t.name && t.name.toLowerCase().trim() === term) return true;
+        return false;
+      });
+      if (teacher) {
+        matched = {
+          id: teacher.id.startsWith('usr-') ? teacher.id : `usr-tch-${teacher.id}`,
+          name: teacher.name,
+          email: teacher.email || `${teacher.nip}@guru.simpkl.com`,
+          role: 'guru',
+          nip: teacher.nip,
+          phone: teacher.phone || '-',
+          password: teacher.password || 'guru@123'
+        };
+        this.users.push(matched);
+        saveToStorage('users', this.users);
+      }
+    }
+
+    // 4. Direct lookup in Master Siswa (this.students)
+    if (!matched) {
+      const student = this.students.find((s) => {
+        if (s.nisn && s.nisn.toLowerCase().trim() === term) return true;
+        if (s.id.toLowerCase().trim() === term) return true;
+        if (s.name && s.name.toLowerCase().trim() === term) return true;
+        return false;
+      });
+      if (student) {
+        matched = {
+          id: student.id.startsWith('usr-') ? student.id : `usr-std-${student.id}`,
+          name: student.name,
+          email: `${student.nisn}@siswa.simpkl.com`,
+          role: 'siswa',
+          nisn: student.nisn,
+          classMajor: student.classMajor,
+          phone: student.phone || '-',
+          password: 'password123'
+        };
+        this.users.push(matched);
+        saveToStorage('users', this.users);
+      }
+    }
+
+    // 5. Direct lookup in Master DUDI (this.dudis)
+    if (!matched) {
+      const dudi = this.dudis.find((d) => {
+        if (d.email && d.email.toLowerCase().trim() === term) return true;
+        if (d.id.toLowerCase().trim() === term) return true;
+        if (d.name && d.name.toLowerCase().trim() === term) return true;
+        return false;
+      });
+      if (dudi) {
+        matched = {
+          id: dudi.id.startsWith('usr-') ? dudi.id : `usr-dudi-${dudi.id}`,
+          name: dudi.name,
+          email: dudi.email || `${dudi.id}@dudi.simpkl.com`,
+          role: 'dudi',
+          phone: dudi.phone || '-',
+          password: 'dudi123'
+        };
+        this.users.push(matched);
+        saveToStorage('users', this.users);
+      }
+    }
+
+    // 6. Keyword fallbacks if user typed role keywords or common demo aliases
+    if (!matched) {
+      if (
+        term.includes('admin') ||
+        term.includes('koordinator') ||
+        term === 'admin@simpkl.com' ||
+        term === 'admin@smkn1.sch.id'
+      ) {
         matched = this.users.find((u) => u.role === 'admin');
-      } else if (term.includes('guru') || term === 'guru@smkn1.sch.id') {
+      } else if (
+        term.includes('guru') ||
+        term === 'guru@smkn1.sch.id' ||
+        term === 'guru@simpkl.com' ||
+        term === 'pembimbing'
+      ) {
         matched = this.users.find((u) => u.role === 'guru');
-      } else if (term.includes('siswa') || term === 'siswa@smkn1.sch.id') {
+        if (!matched && this.teachers.length > 0) {
+          const t = this.teachers[0];
+          matched = {
+            id: `usr-tch-${t.id}`,
+            name: t.name,
+            email: t.email || `${t.nip}@guru.simpkl.com`,
+            role: 'guru',
+            nip: t.nip,
+            password: t.password || 'guru@123'
+          };
+          this.users.push(matched);
+        }
+      } else if (
+        term.includes('siswa') ||
+        term === 'siswa@smkn1.sch.id' ||
+        term === 'siswa@simpkl.com'
+      ) {
         matched = this.users.find((u) => u.role === 'siswa');
-      } else if (term.includes('dudi') || term === 'dudi@telkom.co.id') {
+        if (!matched && this.students.length > 0) {
+          const s = this.students[0];
+          matched = {
+            id: `usr-std-${s.id}`,
+            name: s.name,
+            email: `${s.nisn}@siswa.simpkl.com`,
+            role: 'siswa',
+            nisn: s.nisn,
+            password: 'password123'
+          };
+          this.users.push(matched);
+        }
+      } else if (
+        term.includes('dudi') ||
+        term === 'dudi@telkom.co.id' ||
+        term === 'dudi@simpkl.com'
+      ) {
         matched = this.users.find((u) => u.role === 'dudi');
+        if (!matched && this.dudis.length > 0) {
+          const d = this.dudis[0];
+          matched = {
+            id: `usr-dudi-${d.id}`,
+            name: d.name,
+            email: d.email || `${d.id}@dudi.simpkl.com`,
+            role: 'dudi',
+            password: 'dudi123'
+          };
+          this.users.push(matched);
+        }
       }
     }
 
     if (!matched) {
-      return { success: false, message: 'Akun dengan NISN / Email / NIP tersebut tidak ditemukan. Gunakan admin@simpkl.com, email terdaftar, atau NIP/NISN.' };
+      return {
+        success: false,
+        message: 'Akun dengan NISN / Email / NIP tersebut tidak ditemukan. Gunakan NIP Guru, NISN Siswa, email terdaftar, atau kata kunci (guru / siswa / admin / dudi).'
+      };
     }
 
-    // Verify password if provided
+    // 7. Verify password if provided
     if (password && password.trim().length > 0) {
       const userPass = matched.password ? matched.password.trim() : 'password123';
       const inputPass = password.trim();
-      // Allow user's password, 'password123', 'admin123', or '123456'
-      if (inputPass !== userPass && inputPass !== 'password123' && inputPass !== 'admin123' && inputPass !== '123456') {
-        return { success: false, message: 'Kata sandi salah. Gunakan kata sandi akun Anda atau "password123".' };
+      // Allow user's password, or common demo passwords
+      if (
+        inputPass !== userPass &&
+        inputPass !== 'password123' &&
+        inputPass !== 'guru@123' &&
+        inputPass !== 'admin123' &&
+        inputPass !== 'dudi123' &&
+        inputPass !== '123456'
+      ) {
+        return {
+          success: false,
+          message: 'Kata sandi salah. Gunakan kata sandi akun Anda (default: guru@123 untuk guru, password123 untuk siswa).'
+        };
       }
     }
 

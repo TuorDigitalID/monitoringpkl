@@ -19,9 +19,10 @@ import { exportJournalsToExcel } from '../lib/exportExcel';
 
 interface TeacherDashboardProps {
   currentUser: User;
+  activeMenuItem?: string;
 }
 
-export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser }) => {
+export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ currentUser, activeMenuItem }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [journals, setJournals] = useState<DailyJournal[]>([]);
   const [supervisions, setSupervisions] = useState<SupervisionLog[]>([]);

@@ -23,9 +23,10 @@ import { exportJournalsToExcel } from '../lib/exportExcel';
 
 interface StudentDashboardProps {
   currentUser: User;
+  activeMenuItem?: string;
 }
 
-export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser }) => {
+export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser, activeMenuItem }) => {
   const [student, setStudent] = useState<Student>(() => dbStore.getStudentForUser(currentUser));
   const [journals, setJournals] = useState<DailyJournal[]>([]);
   const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
@@ -38,6 +39,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUser 
   const [description, setDescription] = useState('');
   const [learnings, setLearnings] = useState('');
   const [activeTab, setActiveTab] = useState<'jurnal' | 'presensi' | 'sertifikat'>('jurnal');
+
+  useEffect(() => {
+    if (activeMenuItem === 'siswa_jurnal') setActiveTab('jurnal');
+    else if (activeMenuItem === 'siswa_presensi') setActiveTab('presensi');
+    else if (activeMenuItem === 'siswa_sertifikat') setActiveTab('sertifikat');
+  }, [activeMenuItem]);
 
   const loadData = () => {
     const activeStudent = dbStore.getStudentForUser(currentUser);

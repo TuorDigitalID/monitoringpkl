@@ -64,9 +64,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'bg-orange-100 text-orange-700'
                     : currentUser.role === 'guru'
                     ? 'bg-emerald-100 text-emerald-700'
+                    : currentUser.role === 'dudi'
+                    ? 'bg-purple-100 text-purple-700'
                     : 'bg-amber-100 text-amber-800'
                 }`}>
-                  {currentUser.role === 'admin' ? 'SUPER ADMIN' : currentUser.role === 'guru' ? 'GURU' : 'SISWA'}
+                  {currentUser.role === 'admin' ? 'SUPER ADMIN' : currentUser.role === 'guru' ? 'GURU' : currentUser.role === 'dudi' ? 'INDUSTRI DUDI' : 'SISWA'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 hidden md:block">
@@ -140,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {currentUser.name}
                   </p>
                   <p className="text-[10px] font-bold text-orange-600 leading-tight uppercase">
-                    {activeRole === 'admin' ? 'SUPER ADMIN' : activeRole === 'guru' ? 'GURU' : 'SISWA'}
+                    {activeRole === 'admin' ? 'SUPER ADMIN' : activeRole === 'guru' ? 'GURU' : activeRole === 'dudi' ? 'INDUSTRI DUDI' : 'SISWA'}
                   </p>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -174,6 +176,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div>
                       <div>Guru Pembimbing</div>
                       <div className="text-[10px] text-slate-400 font-normal">Validasi Jurnal & Bimbingan</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleChange('dudi')}
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center space-x-2 hover:bg-purple-50 transition-colors cursor-pointer ${
+                      activeRole === 'dudi' ? 'bg-purple-50 font-bold text-purple-700' : 'text-slate-700'
+                    }`}
+                  >
+                    <UserCheck className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <div>Pembimbing DUDI</div>
+                      <div className="text-[10px] text-slate-400 font-normal">Validasi Presensi & Nilai Industri</div>
                     </div>
                   </button>
 

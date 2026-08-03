@@ -35,7 +35,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     setErrorMessage('');
 
     if (!identifier.trim()) {
-      setErrorMessage('Harap masukkan NISN, Email, atau NIP Anda.');
+      setErrorMessage('Harap masukkan NISN, Email, NIP, atau Kata Kunci Anda.');
       return;
     }
 
@@ -48,7 +48,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
       if (res.success) {
         onLoginSuccess();
       } else {
-        setErrorMessage(res.message || 'Gagal masuk. Periksa kembali NISN/Email dan Kata Sandi.');
+        setErrorMessage(res.message || 'Gagal masuk. Periksa kembali NISN/Email/NIP dan Kata Sandi.');
       }
     }, 400);
   };

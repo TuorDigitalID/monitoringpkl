@@ -15,15 +15,27 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(dbStore.getIsLoggedIn());
   const [showSupabaseModal, setShowSupabaseModal] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState('dashboard');
-  const [activeMenuItem, setActiveMenuItem] = useState('kelola_akun');
+  const [activeMenuItem, setActiveMenuItem] = useState<string>(() => {
+    if (currentUser.role === 'admin') return 'monitoring';
+    if (currentUser.role === 'guru') return 'guru_dashboard';
+    if (currentUser.role === 'dudi') return 'dudi_dashboard';
+    return 'siswa_dashboard';
+  });
 
   useEffect(() => {
     const unsubscribe = dbStore.subscribe(() => {
-      setCurrentUser(dbStore.getCurrentUser());
+      const user = dbStore.getCurrentUser();
+      if (user.role !== currentUser.role) {
+        if (user.role === 'admin') setActiveMenuItem('monitoring');
+        else if (user.role === 'guru') setActiveMenuItem('guru_dashboard');
+        else if (user.role === 'dudi') setActiveMenuItem('dudi_dashboard');
+        else setActiveMenuItem('siswa_dashboard');
+      }
+      setCurrentUser(user);
       setIsLoggedIn(dbStore.getIsLoggedIn());
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser.role]);
 
   // 10-minute inactivity session auto-logout
   useEffect(() => {
@@ -89,9 +101,15 @@ export default function App() {
 
         {/* Dynamic View Per Active Role */}
         <main className="flex-1 min-w-0">
-          {currentUser.role === 'siswa' && <StudentDashboard currentUser={currentUser} />}
-          {currentUser.role === 'guru' && <TeacherDashboard currentUser={currentUser} />}
-          {currentUser.role === 'dudi' && <IndustryDashboard currentUser={currentUser} />}
+          {currentUser.role === 'siswa' && (
+            <StudentDashboard currentUser={currentUser} activeMenuItem={activeMenuItem} />
+          )}
+          {currentUser.role === 'guru' && (
+            <TeacherDashboard currentUser={currentUser} activeMenuItem={activeMenuItem} />
+          )}
+          {currentUser.role === 'dudi' && (
+            <IndustryDashboard currentUser={currentUser} activeMenuItem={activeMenuItem} />
+          )}
           {currentUser.role === 'admin' && (
             <AdminDashboard
               activeMenuItem={activeMenuItem}
